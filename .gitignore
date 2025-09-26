@@ -1,0 +1,33 @@
+# Binaries
+/gateplane
+/gateplane-test
+*.exe
+
+# Build directories
+dist/
+build/
+
+# Go specific
+vendor/
+*.test
+*.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Config files with sensitive data
+.gateplane/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.log
+tmp/
+/vault-plugins
