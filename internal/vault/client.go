@@ -3,18 +3,20 @@ package vault
 import (
 	"encoding/json"
 	"fmt"
+
 	// "time"
 	"os"
 	// "strconv"
 	"strings"
+
 	"github.com/mitchellh/go-homedir"
 
 	"github.com/gateplane-io/client-cli/pkg/errors"
 	"github.com/gateplane-io/client-cli/pkg/models"
 	vault "github.com/hashicorp/vault/api"
 
-	"github.com/gateplane-io/vault-plugins/pkg/responses"
 	base "github.com/gateplane-io/vault-plugins/pkg/models"
+	"github.com/gateplane-io/vault-plugins/pkg/responses"
 )
 
 // Helper function to convert string to RequestStatus
@@ -88,7 +90,7 @@ func (c *Client) VaultClient() *vault.Client {
 }
 
 func (c *Client) DiscoverGates() ([]*models.Gate, error) {
-	auths, err := c.client.Sys().ListAuth()
+	auths, err := c.client.Sys().ListMounts()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list auth methods: %w", err)
 	}
@@ -102,14 +104,13 @@ func (c *Client) DiscoverGates() ([]*models.Gate, error) {
 			}
 
 			gate := &models.Gate{
-				Path:        "auth/" + strings.TrimSuffix(path, "/"),
+				Path:        strings.TrimSuffix(path, "/"),
 				Type:        gateType,
 				Description: auth.Description,
 			}
 			gates = append(gates, gate)
 		}
 	}
-
 	return gates, nil
 }
 
@@ -142,21 +143,21 @@ func (c *Client) GetRequestStatus(gate string) (*responses.AccessRequestResponse
 
 	respJson, err := json.Marshal(resp.Data)
 	if err != nil {
-	    fmt.Println("Error marshaling data:", err)
-        return nil, err
+		fmt.Println("Error marshaling data:", err)
+		return nil, err
 	}
 
 	var accessRequest responses.AccessRequestResponse
-    err = json.Unmarshal([]byte(respJson), &accessRequest)
-    if err != nil {
-        fmt.Println("Error unmarshaling JSON:", err)
-        return nil, err
-    }
+	err = json.Unmarshal([]byte(respJson), &accessRequest)
+	if err != nil {
+		fmt.Println("Error unmarshaling JSON:", err)
+		return nil, err
+	}
 
 	// Parse the response using the new structured approach
 	// vaultResp, err := models.ParseRequestResponse(resp.Data)
 	// if err != nil {
-		// return nil, errors.WrapVaultError("parse request response", gate, err)
+	// return nil, errors.WrapVaultError("parse request response", gate, err)
 	// }
 
 	// Get gate configuration to find required_approvals
@@ -172,6 +173,74 @@ func (c *Client) GetRequestStatus(gate string) (*responses.AccessRequestResponse
 	return &accessRequest, nil
 }
 
+func (c *Client) ListAllRequestsForGate(path string) ([]*models.Request, error) {
+	listPath := fmt.Sprintf("%s/request", path)
+
+	resp, err := c.client.Logical().List(listPath)
+	if err != nil {
+		return nil, errors.WrapVaultError("list requests", path, err)
+	}
+
+	if resp == nil || resp.Data == nil {
+		return []*models.Request{}, nil // Return empty array if no requests
+	}
+
+	// The response should contain a map with request IDs as keys
+	requestsMap, ok := resp.Data["key_info"].(map[string]interface{})
+	if !ok {
+		return []*models.Request{}, nil
+	}
+
+	var requests []*models.Request
+
+	// Create gate info for all requests
+	gate := &models.Gate{
+		Path: strings.TrimSuffix(path, "/"),
+	}
+
+	// Determine gate type by checking the plugin type
+	mounts, err := c.client.Sys().ListMounts()
+	if err == nil {
+		if auth, exists := mounts[path+"/"]; exists {
+			if strings.Contains(auth.Type, "okta") {
+				gate.Type = models.OktaGroupGate
+			} else {
+				gate.Type = models.PolicyGate
+			}
+			gate.Description = auth.Description
+		}
+	}
+
+	for _, requestData := range requestsMap {
+		map_, ok := requestData.(map[string]interface{})
+		if !ok {
+			continue // Skip if not a valid request map
+		}
+
+		// Convert the request data to JSON
+		requestJson, err := json.Marshal(map_)
+		if err != nil {
+			continue // Skip if we can't marshal
+		}
+
+		// Parse into AccessRequestResponse
+		var accessRequest responses.AccessRequestResponse
+		err = json.Unmarshal(requestJson, &accessRequest)
+		if err != nil {
+			continue // Skip if we can't unmarshal
+		}
+
+		// Create the combined Request model
+		request := &models.Request{
+			AccessRequestResponse: &accessRequest,
+			Gate:                  gate,
+		}
+
+		requests = append(requests, request)
+	}
+
+	return requests, nil
+}
 
 func isGatePlanePlugin(pluginType string) bool {
 	return strings.Contains(pluginType, "gateplane") &&

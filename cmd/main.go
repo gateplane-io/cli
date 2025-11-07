@@ -21,7 +21,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "gateplane",
 		Short: "CLI for GatePlane - Just-In-Time Access Management",
-		Long: `GatePlane CLI provides command-line access to GatePlane gates for 
+		Long: `GatePlane CLI provides command-line access to GatePlane gates for
 requesting, approving, and claiming time-limited access to protected resources.`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if err := config.Init(); err != nil {
@@ -41,7 +41,7 @@ func init() {
 		authCmd(),
 		configCmd(),
 		// gatesCmd(),
-		// requestCmd(),
+		requestCmd(),
 		// approveCmd(),
 		// claimCmd(),
 		// statusCmd(),

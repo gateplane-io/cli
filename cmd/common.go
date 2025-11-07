@@ -7,8 +7,10 @@ import (
 
 	"github.com/gateplane-io/client-cli/internal/config"
 	"github.com/gateplane-io/client-cli/internal/vault"
+
 	// "github.com/gateplane-io/client-cli/pkg/models"
 	"github.com/fatih/color"
+	"github.com/gateplane-io/vault-plugins/pkg/models"
 	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
 )
@@ -101,6 +103,28 @@ func printFailedMessage(message string, args ...interface{}) {
 // func formatRequestStatus(req *models.Request) string {
 // 	return req.FormatStatus()
 // }
+
+// formatRequestStatus returns a colored string representation of request status
+func formatRequestStatus(status models.AccessRequestStatus) string {
+	switch status {
+	case models.Pending:
+		return color.YellowString("Pending")
+	case models.Approved:
+		return color.GreenString("Approved")
+	case models.Active:
+		return color.BlueString("Active")
+	case models.Expired:
+		return color.RedString("Expired")
+	case models.Abandoned:
+		return color.RedString("Abandoned")
+	case models.Rejected:
+		return color.RedString("Rejected")
+	case models.Revoked:
+		return color.RedString("Revoked")
+	default:
+		return color.WhiteString(status.String())
+	}
+}
 
 // formatGateDisplay formats gate path with optional default gate highlighting
 func formatGateDisplay(gatePath string) string {

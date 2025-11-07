@@ -8,14 +8,13 @@ import (
 	"github.com/gateplane-io/client-cli/internal/config"
 	"github.com/gateplane-io/client-cli/internal/table"
 	"github.com/gateplane-io/client-cli/internal/vault"
+
 	// "github.com/gateplane-io/client-cli/internal/service"
-	"github.com/gateplane-io/client-cli/pkg/models"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 
-	// "github.com/gateplane-io/vault-plugins/pkg/models"
-	"github.com/gateplane-io/vault-plugins/pkg/responses"
+	"github.com/gateplane-io/client-cli/pkg/models"
 )
 
 func requestCmd() *cobra.Command {
@@ -95,11 +94,11 @@ func requestCreateCmd() *cobra.Command {
 
 				// Send notification if service is authenticated
 				/*
-				notificationService := service.NewService(client)
-				if err := notificationService.SendNotification(service.NotificationRequest, gate, req.RequestID); err != nil {
-					// Log but don't fail on notification errors
-					fmt.Printf("Warning: failed to send notification: %v\n", err)
-				}
+					notificationService := service.NewService(client)
+					if err := notificationService.SendNotification(service.NotificationRequest, gate, req.RequestID); err != nil {
+						// Log but don't fail on notification errors
+						fmt.Printf("Warning: failed to send notification: %v\n", err)
+					}
 				*/
 			}
 
@@ -126,7 +125,7 @@ func requestListCmd() *cobra.Command {
 				return wrapError("create vault client", err)
 			}
 
-			var requests []*responses.AccessRequestResponse
+			var requests []*models.Request
 			var gateFilter string
 
 			// Check if gate argument is provided
@@ -168,7 +167,7 @@ func requestListCmd() *cobra.Command {
 
 			// Get requests from filtered gates
 			for _, gate := range targetGates {
-				gateRequests, err := client.ListAllRequests(gate.Path)
+				gateRequests, err := client.ListAllRequestsForGate(gate.Path)
 				if err == nil && gateRequests != nil && len(gateRequests) > 0 {
 					requests = append(requests, gateRequests...)
 				}
@@ -188,16 +187,15 @@ func requestListCmd() *cobra.Command {
 			rows := make([]table.Row, 0, len(requests))
 			for _, req := range requests {
 				rows = append(rows, table.Row{
-					formatGateDisplay(req.Gate),
-					req.User,
-					formatRequestStatus(req),
-					req.Reason,
-					req.RequestID,
+					formatGateDisplay(req.Path),
+					formatRequestStatus(req.Status),
+					req.OwnerID,
+					req.Justification,
 				})
 			}
 
 			table.RenderTable(table.TableOptions{
-				Headers: []string{"Gate", "User", "Status", "Reason", "Request ID"},
+				Headers: []string{"Gate", "Status", "Requestor ID", "Reason"},
 				SortBy:  0, // Sort by Gate
 				GroupBy: 0, // Group by Gate
 			}, rows)
