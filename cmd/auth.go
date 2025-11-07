@@ -131,20 +131,9 @@ func authStatusCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.GetConfig()
 
-			if cfg.Vault.Token == "" {
-				fmt.Println("Not authenticated")
-				return nil
-			}
-
 			client, err := createVaultClient()
 			if err != nil {
 				return wrapError("create vault client", err)
-			}
-
-			tokenInfo, err := client.VaultClient().Auth().Token().LookupSelf()
-			if err != nil {
-				fmt.Println("Authentication expired or invalid")
-				return nil
 			}
 
 			fmt.Printf("Vault Address: %s\n", cfg.Vault.Address)
@@ -152,8 +141,14 @@ func authStatusCmd() *cobra.Command {
 				fmt.Printf("Namespace: %s\n", cfg.Vault.Namespace)
 			}
 
-			printTokenInfo(tokenInfo)
+			tokenInfo, err := client.VaultClient().Auth().Token().LookupSelf()
+			if err != nil {
+				printFailedMessage("Not authenticated")
+				return nil
+			}
 
+			printTokenInfo(tokenInfo)
+			printSuccessMessage("Authenticated")
 			return nil
 		},
 	}

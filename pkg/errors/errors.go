@@ -62,3 +62,18 @@ func NewVaultErrorf(operation, gate, format string, args ...interface{}) *VaultE
 		Err:       fmt.Errorf(format, args...),
 	}
 }
+
+// WrapVaultError wraps an error with Vault operation context
+func WrapVaultError(operation, gate string, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// If it's already a VaultError, don't double-wrap
+	var vaultErr *VaultError
+	if errors.As(err, &vaultErr) {
+		return err
+	}
+
+	return NewVaultError(operation, gate, err)
+}

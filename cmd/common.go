@@ -91,6 +91,11 @@ func printSuccessMessage(message string, args ...interface{}) {
 	color.Green("✓ "+message, args...)
 }
 
+// printSuccessMessage prints a success message with green checkmark
+func printFailedMessage(message string, args ...interface{}) {
+	color.Red("× "+message, args...)
+}
+
 // // formatRequestStatus returns a colored string representation of request status
 // // This function is now deprecated in favor of req.FormatStatus() method
 // func formatRequestStatus(req *models.Request) string {
