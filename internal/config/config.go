@@ -52,6 +52,7 @@ var (
 	cfg        *Config
 	configFile string
 	credsFile  string
+	vaultFile  string
 )
 
 // Init initializes the configuration system by creating config directory and loading config file
@@ -68,6 +69,8 @@ func Init() error {
 
 	configFile = filepath.Join(configDir, "config.yaml")
 	credsFile = filepath.Join(configDir, ".credentials.yaml")
+	// The file created by the 'vault login' command
+	vaultFile = filepath.Join(home, ".vault-token")
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -108,6 +111,13 @@ func Init() error {
 	cfg = &Config{}
 	if err := viper.Unmarshal(cfg); err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	// If the ~/.vault-token contains a token
+	// it takes priority over the hardcoded one
+	vaultFileToken, err := ReadVaultFile()
+	if err == nil {
+		cfg.Vault.Token = vaultFileToken
 	}
 
 	return nil
@@ -245,4 +255,28 @@ func ClearServiceAuth() error {
 	cfg.Service.JWT = ""
 	cfg.Service.JWKS = ""
 	return SaveConfig()
+}
+
+// ReadVaultFile reads the contents of the vault token file
+func ReadVaultFile() (string, error) {
+	if vaultFile == "" {
+		// Initialize vaultFile path if not already done
+		home, err := homedir.Dir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get home directory: %w", err)
+		}
+		vaultFile = filepath.Join(home, ".vault-token")
+	}
+
+	data, err := os.ReadFile(vaultFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("vault token file not found at %s", vaultFile)
+		}
+		return "", fmt.Errorf("failed to read vault token file: %w", err)
+	} else if len(data) == 0 {
+		return "", fmt.Errorf("vault token file is empty: %w", err)
+	}
+
+	return string(data), nil
 }
