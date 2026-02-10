@@ -84,7 +84,7 @@ func statusCmd() *cobra.Command {
 				}
 
 				table.RenderTable(table.TableOptions{
-					Headers: []string{"Gate", "Status", "Reason"},
+					Headers: []string{"Gate", "Status", "Justification"},
 					SortBy:  0,  // Sort by Gate
 					GroupBy: -1, // No grouping for own requests
 				}, rows)
@@ -108,13 +108,13 @@ func statusCmd() *cobra.Command {
 
 					rows = append(rows, table.Row{
 						formatGateDisplay(gatePath),
-						req.Justification,
 						req.OwnerID,
+						req.Justification,
 					})
 				}
 
 				table.RenderTable(table.TableOptions{
-					Headers: []string{"Gate", "Justification", "Requestor ID"},
+					Headers: []string{"Gate", "Requestor ID", "Justification"},
 					SortBy:  0, // Sort by Gate
 					GroupBy: 0, // Group by Gate
 				}, rows)

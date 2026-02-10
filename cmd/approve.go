@@ -99,12 +99,13 @@ func runInteractiveApprove() error {
 	// Create display items for requests
 	requestItems := make([]string, len(allRequests))
 	for i, req := range allRequests {
-		requestItems[i] = fmt.Sprintf("[%s] %s - Approvals: %d/%d (ID: %.8s)",
+		requestItems[i] = fmt.Sprintf("[%s] - Approvals: %d/%d (ID: %.8s) - %s",
 			req.Gate.Path,
-			req.Justification,
 			req.NumOfApprovals,
 			req.RequiredApprovals,
-			req.OwnerID)
+			req.OwnerID,
+			req.Justification,
+		)
 	}
 
 	// Select request to approve
