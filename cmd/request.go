@@ -170,6 +170,16 @@ func requestListCmd() *cobra.Command {
 				gateRequests, err := client.ListAllRequestsForGate(gate.Path)
 				if err == nil && gateRequests != nil && len(gateRequests) > 0 {
 					requests = append(requests, gateRequests...)
+				} else {
+					gateRequest, err := client.GetRequestStatus(gate.Path)
+					if err == nil && gateRequest != nil {
+						requests = append(
+							requests,
+							&models.Request{
+								AccessRequestResponse: gateRequest,
+								Gate:                  gate,
+							})
+					}
 				}
 			}
 
@@ -190,12 +200,13 @@ func requestListCmd() *cobra.Command {
 					formatGateDisplay(req.Path),
 					formatRequestStatus(req.Status),
 					req.OwnerID,
+					fmt.Sprintf("%d/%d", req.NumOfApprovals, req.RequiredApprovals),
 					req.Justification,
 				})
 			}
 
 			table.RenderTable(table.TableOptions{
-				Headers: []string{"Gate", "Status", "Requestor ID", "Reason"},
+				Headers: []string{"Gate", "Status", "Requestor ID", "Approvals", "Justification"},
 				SortBy:  0, // Sort by Gate
 				GroupBy: 0, // Group by Gate
 			}, rows)
@@ -274,19 +285,19 @@ func selectGateInteractively(client *vault.Client, gates []*models.Gate) (string
 func promptForReason() (string, error) {
 	validate := func(input string) error {
 		if strings.TrimSpace(input) == "" {
-			return fmt.Errorf("reason cannot be empty")
+			return fmt.Errorf("Justification cannot be empty")
 		}
 		return nil
 	}
 
 	prompt := promptui.Prompt{
-		Label:    "Reason for access",
+		Label:    "Justification for access",
 		Validate: validate,
 	}
 
 	result, err := prompt.Run()
 	if err != nil {
-		return "", fmt.Errorf("reason input cancelled: %w", err)
+		return "", fmt.Errorf("Justification input cancelled: %w", err)
 	}
 	return result, nil
 }

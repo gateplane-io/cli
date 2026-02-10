@@ -57,6 +57,11 @@ func formatOutput(data interface{}, format string) error {
 		}
 		fmt.Print(string(yamlData))
 
+	// case OutputFormatTable:
+	// 	for k, v := range data {
+	// 		fmt.Printf("%s: %s\n", k, v)
+	// 	}
+
 	default:
 		return fmt.Errorf("unsupported output format for generic data: %s", format)
 	}

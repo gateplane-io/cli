@@ -40,11 +40,11 @@ func init() {
 	rootCmd.AddCommand(
 		authCmd(),
 		configCmd(),
-		// gatesCmd(),
+		gatesCmd(),
 		requestCmd(),
-		// approveCmd(),
-		// claimCmd(),
-		// statusCmd(),
+		approveCmd(),
+		claimCmd(),
+		statusCmd(),
 		// versionCmd(),
 	)
 }

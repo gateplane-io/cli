@@ -115,9 +115,12 @@ func Init() error {
 
 	// If the ~/.vault-token contains a token
 	// it takes priority over the hardcoded one
-	vaultFileToken, err := ReadVaultFile()
-	if err == nil {
-		cfg.Vault.Token = vaultFileToken
+	_, exists := os.LookupEnv("VAULT_TOKEN")
+	if !exists {
+		vaultFileToken, err := ReadVaultFile()
+		if err == nil {
+			cfg.Vault.Token = vaultFileToken
+		}
 	}
 
 	return nil
