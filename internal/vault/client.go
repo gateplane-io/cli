@@ -129,7 +129,7 @@ func (c *Client) CreateRequest(gate string, justification string) error {
 	return nil
 }
 
-func (c *Client) GetRequestStatus(gate string) (*responses.AccessRequestResponse, error) {
+func (c *Client) GetRequestStatus(gate string) (*models.Request, error) {
 	path := fmt.Sprintf("%s/request", gate)
 
 	resp, err := c.client.Logical().Read(path)
@@ -155,23 +155,12 @@ func (c *Client) GetRequestStatus(gate string) (*responses.AccessRequestResponse
 		return nil, err
 	}
 
-	// Parse the response using the new structured approach
-	// vaultResp, err := models.ParseRequestResponse(resp.Data)
-	// if err != nil {
-	// return nil, errors.WrapVaultError("parse request response", gate, err)
-	// }
+	ret := &models.Request{
+		AccessRequestResponse: &accessRequest,
+		Gate:                  &models.Gate{Path: gate},
+	}
 
-	// Get gate configuration to find required_approvals
-	// configPath := fmt.Sprintf("%s/config", gate)
-	// configResp, err := c.client.Logical().Read(configPath)
-	// var requiredApprovals int
-	// if err == nil && configResp != nil && configResp.Data != nil {
-	// 	if gateConfig, err := models.ParseGateConfig(configResp.Data); err == nil {
-	// 		requiredApprovals = gateConfig.RequiredApprovals
-	// 	}
-	// }
-
-	return &accessRequest, nil
+	return ret, nil
 }
 
 func (c *Client) ListAllRequestsForGate(path string) ([]*models.Request, error) {

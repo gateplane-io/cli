@@ -7,7 +7,6 @@ import (
 	// "github.com/gateplane-io/client-cli/internal/service"
 
 	"github.com/gateplane-io/client-cli/pkg/models"
-	"github.com/gateplane-io/vault-plugins/pkg/responses"
 
 	base "github.com/gateplane-io/vault-plugins/pkg/models"
 
@@ -44,7 +43,7 @@ func claimCmd() *cobra.Command {
 				}
 
 				// Get claimable requests from gates
-				var gateRequest *responses.AccessRequestResponse
+				var gateRequest *models.Request
 				var claimableGates []*models.Gate
 				for _, gate := range gates {
 					gateRequest, err = client.GetRequestStatus(gate.Path)

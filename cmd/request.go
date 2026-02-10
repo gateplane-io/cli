@@ -173,12 +173,7 @@ func requestListCmd() *cobra.Command {
 				} else {
 					gateRequest, err := client.GetRequestStatus(gate.Path)
 					if err == nil && gateRequest != nil {
-						requests = append(
-							requests,
-							&models.Request{
-								AccessRequestResponse: gateRequest,
-								Gate:                  gate,
-							})
+						requests = append(requests, gateRequest)
 					}
 				}
 			}

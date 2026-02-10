@@ -42,13 +42,7 @@ func statusCmd() *cobra.Command {
 				// Check for your own requests
 				ownReq, err := client.GetRequestStatus(gate.Path)
 				if err == nil && ownReq != nil {
-					myRequests = append(
-						myRequests,
-						&models.Request{
-							AccessRequestResponse: ownReq,
-							Gate:                  gate,
-						},
-					)
+					myRequests = append(myRequests, ownReq)
 				}
 
 				requests, err := client.ListAllRequestsForGate(gate.Path)
