@@ -155,9 +155,25 @@ func (c *Client) GetRequestStatus(gate string) (*models.Request, error) {
 		return nil, err
 	}
 
+	var gate_ = models.Gate{
+		Path: gate,
+	}
+	// Determine gate type by checking the plugin type
+	mounts, err := c.client.Sys().ListMounts()
+	if err == nil {
+		if auth, exists := mounts[path+"/"]; exists {
+			if strings.Contains(auth.Type, "okta") {
+				gate_.Type = models.OktaGroupGate
+			} else {
+				gate_.Type = models.PolicyGate
+			}
+			gate_.Description = auth.Description
+		}
+	}
+
 	ret := &models.Request{
 		AccessRequestResponse: &accessRequest,
-		Gate:                  &models.Gate{Path: gate},
+		Gate:                  &gate_,
 	}
 
 	return ret, nil
