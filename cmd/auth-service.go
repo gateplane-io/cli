@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +11,7 @@ import (
 	"github.com/gateplane-io/client-cli/internal/config"
 	"github.com/gateplane-io/client-cli/internal/service"
 	"github.com/gateplane-io/client-cli/internal/vault"
+	"github.com/gateplane-io/client-cli/pkg/models"
 	vault_api "github.com/hashicorp/vault/api"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
@@ -141,7 +140,7 @@ func serviceStatusCmd() *cobra.Command {
 			}
 
 			// Test Notifications
-			if err := svcClient.TestNotification(); err != nil {
+			if err := svcClient.SendNotification(&models.RequestServiceResponse{}, service.Test); err != nil {
 				fmt.Printf("Notification status: Failed (%s)\n", err)
 			} else {
 				fmt.Println("Notification status: Working!")
@@ -263,7 +262,8 @@ func performOIDCLogin(client *vault_api.Client, clientID string, skipBrowser boo
 func getJWKS(client *vault_api.Client) (string, error) {
 	// Get JWKS from the Vault OIDC provider via HTTP
 	vaultAddr := client.Address()
-	jwksURL := fmt.Sprintf("%s/v1/identity/oidc/provider/gateplane/.well-known/keys", vaultAddr)
+	providerName := "gateplane"
+	jwksURL := fmt.Sprintf("%s/v1/identity/oidc/provider/%s/.well-known/keys", vaultAddr, providerName)
 
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	resp, err := httpClient.Get(jwksURL)
@@ -285,45 +285,6 @@ func getJWKS(client *vault_api.Client) (string, error) {
 	}
 
 	return string(jwksData), nil
-}
-
-func testServiceAuth(jwt, jwks string) error {
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	// Create request body with both JWT and JWKS for PCRE
-	requestBody := map[string]string{
-		"jwt":  jwt,
-		"jwks": jwks,
-	}
-
-	bodyJSON, err := json.Marshal(requestBody)
-	if err != nil {
-		return fmt.Errorf("failed to marshal request body: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", config.ServiceAddress+"/api/ping", bytes.NewBuffer(bodyJSON))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+jwt)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode != 200 {
-		// Try to read error message
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("service returned status %d: %s", resp.StatusCode, string(body))
-	}
-
-	return nil
 }
 
 type callbackResult struct {

@@ -6,6 +6,7 @@ import (
 	"github.com/fatih/color"
 	// "github.com/gateplane-io/client-cli/internal/service"
 
+	"github.com/gateplane-io/client-cli/internal/service"
 	"github.com/gateplane-io/client-cli/pkg/models"
 
 	base "github.com/gateplane-io/vault-plugins/pkg/models"
@@ -33,6 +34,12 @@ func claimCmd() *cobra.Command {
 			client, err := createVaultClient()
 			if err != nil {
 				return wrapError("create vault client", err)
+			}
+
+			svcClient, err := service.NewClient()
+			if err != nil {
+				fmt.Println("Not authenticated with GatePlane Services (using Community Edition features)")
+				svcClient = nil
 			}
 
 			if useInteractive {
@@ -83,12 +90,22 @@ func claimCmd() *cobra.Command {
 				return wrapError("claim access", err)
 			}
 
-			// // Send notification if service is authenticated
-			// notificationService := service.NewService(client)
-			// if err := notificationService.SendNotification(service.NotificationClaim, gate, req.RequestID); err != nil {
-			// 	// Log but don't fail on notification errors
-			// 	fmt.Printf("Warning: failed to send notification: %v\n", err)
-			// }
+			// Send notification if service is authenticated
+			if svcClient == nil {
+				return nil
+			}
+			access, err := client.GetPolicyGateAccessStruct(gate)
+			// Get the status immediately
+
+			if err := svcClient.SendNotification(&models.RequestServiceResponse{
+				Request: req.AccessRequestResponse,
+				Gate:    *req.Gate,
+				Access:  *access,
+			}, service.Claim,
+			); err != nil {
+				// Log but don't fail on notification errors
+				fmt.Printf("Warning: failed to send notification: %v\n", err)
+			}
 
 			format := getEffectiveOutputFormat()
 			switch format {

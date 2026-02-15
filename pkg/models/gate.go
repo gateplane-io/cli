@@ -14,7 +14,7 @@ type Gate struct {
 	Path        string   `json:"path" yaml:"path"`
 	Type        GateType `json:"type" yaml:"type"`
 	Alias       string   `json:"alias,omitempty" yaml:"alias,omitempty"`
-	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
+	Description string   `json:"description" yaml:"description,omitempty"`
 }
 
 // EntityAlias represents a Vault entity alias

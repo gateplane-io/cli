@@ -25,6 +25,7 @@ const (
 	Request NotificationType = "request"
 	Approve NotificationType = "approval"
 	Claim   NotificationType = "claim"
+	Test    NotificationType = "test"
 )
 
 // NewClient creates a new service client
@@ -69,55 +70,17 @@ func (c *Client) Ping() error {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("ping failed with status %d: %s", resp.StatusCode, string(body))
 	}
-
-	fmt.Printf("✓ Service ping successful\n")
-	return nil
-}
-
-// Ping sends a GET request to the /api/ping endpoint
-func (c *Client) TestNotification() error {
-	if c == nil {
-		return fmt.Errorf("service client not initialized")
-	}
-
-	bodyJSON, err := json.Marshal(map[string]string{})
-	if err != nil {
-		return fmt.Errorf("failed to marshal request body: %w", err)
-	}
-
-	url := fmt.Sprintf("%s/api/notification/test", c.baseURL)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyJSON))
-	if err != nil {
-		return fmt.Errorf("failed to create ping request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+c.jwt)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "GatePlane CLI, v0.0.1")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("ping request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("ping failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	fmt.Printf("✓ Service notification successful\n")
 	return nil
 }
 
 // SendRequestNotification sends a POST request to the /api/notification/request endpoint
-func (c *Client) SendRequestNotification(response *models.RequestServiceResponse, type_ NotificationType) error {
+func (c *Client) SendNotification(response *models.RequestServiceResponse, type_ NotificationType) error {
 	if c == nil {
 		return fmt.Errorf("service client not initialized")
 	}
 
-	if response == nil {
-		return fmt.Errorf("request service response is nil")
+	if response == nil && type_ != Test {
+		return fmt.Errorf("body is nil and notification type is not 'test'")
 	}
 
 	// Serialize the response to JSON
@@ -126,6 +89,7 @@ func (c *Client) SendRequestNotification(response *models.RequestServiceResponse
 		return fmt.Errorf("failed to marshal request service response: %w", err)
 	}
 
+	// fmt.Println(string(jsonData))
 	url := fmt.Sprintf("%s/api/notification/%s", c.baseURL, type_)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -146,7 +110,5 @@ func (c *Client) SendRequestNotification(response *models.RequestServiceResponse
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("notification failed with status %d: %s", resp.StatusCode, string(body))
 	}
-
-	fmt.Printf("✓ Request notification sent for gate %s (request ID: %s)\n", response.Path, response.ID)
 	return nil
 }

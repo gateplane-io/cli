@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gateplane-io/client-cli/internal/config"
+	"github.com/gateplane-io/client-cli/internal/service"
 	"github.com/gateplane-io/client-cli/internal/table"
 	"github.com/gateplane-io/client-cli/internal/vault"
 
@@ -54,6 +55,12 @@ func requestCreateCmd() *cobra.Command {
 				return wrapError("create vault client", err)
 			}
 
+			svcClient, err := service.NewClient()
+			if err != nil {
+				fmt.Println("Not authenticated with GatePlane Services (using Community Edition features)")
+				svcClient = nil
+			}
+
 			var gate string
 
 			if useInteractive {
@@ -77,7 +84,7 @@ func requestCreateCmd() *cobra.Command {
 						return err
 					}
 				} else {
-					return fmt.Errorf("reason is required. Use --reason flag or enable interactive mode")
+					return fmt.Errorf("Justification is required. Use --justification flag or enable interactive mode")
 				}
 			}
 
@@ -87,19 +94,25 @@ func requestCreateCmd() *cobra.Command {
 
 			printSuccessMessage("Request created successfully on gate: %s", gate)
 
+			// Send notification if service is authenticated
+			if svcClient == nil {
+				return nil
+			}
+			access, err := client.GetPolicyGateAccessStruct(gate)
 			// Get the status immediately
 			req, err := client.GetRequestStatus(gate)
 			if err == nil && req != nil {
 				fmt.Printf("Status: %s\n", req.Status)
 
-				// Send notification if service is authenticated
-				/*
-					notificationService := service.NewService(client)
-					if err := notificationService.SendNotification(service.NotificationRequest, gate, req.RequestID); err != nil {
-						// Log but don't fail on notification errors
-						fmt.Printf("Warning: failed to send notification: %v\n", err)
-					}
-				*/
+				if err := svcClient.SendNotification(&models.RequestServiceResponse{
+					Request: req.AccessRequestResponse,
+					Gate:    *req.Gate,
+					Access:  *access,
+				}, service.Request,
+				); err != nil {
+					// Log but don't fail on notification errors
+					fmt.Printf("Warning: failed to send notification: %v\n", err)
+				}
 			}
 
 			return nil

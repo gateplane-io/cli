@@ -3,6 +3,7 @@ package vault
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	// "time"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/gateplane-io/client-cli/pkg/errors"
 	"github.com/gateplane-io/client-cli/pkg/models"
+	"github.com/hashicorp/hcl/v2/hclsimple"
 	vault "github.com/hashicorp/vault/api"
 
 	base "github.com/gateplane-io/vault-plugins/pkg/models"
@@ -102,7 +104,7 @@ func (c *Client) DiscoverGates() ([]*models.Gate, error) {
 			if strings.Contains(auth.Type, "okta") {
 				gateType = models.OktaGroupGate
 			}
-
+			// TODO: implement gate alias search here
 			gate := &models.Gate{
 				Path:        strings.TrimSuffix(path, "/"),
 				Type:        gateType,
@@ -159,16 +161,18 @@ func (c *Client) GetRequestStatus(gate string) (*models.Request, error) {
 		Path: gate,
 	}
 	// Determine gate type by checking the plugin type
-	mounts, err := c.client.Sys().ListMounts()
+	// mounts, err := c.client.Sys().ListMounts()
+	mount, err := c.client.Sys().GetMount(gate)
 	if err == nil {
-		if auth, exists := mounts[path+"/"]; exists {
-			if strings.Contains(auth.Type, "okta") {
-				gate_.Type = models.OktaGroupGate
-			} else {
-				gate_.Type = models.PolicyGate
-			}
-			gate_.Description = auth.Description
-		}
+		gate_.Description = mount.Description
+		// if auth, exists := mounts[path]; exists {
+		// 	if strings.Contains(auth.Type, "okta") {
+		// 		gate_.Type = models.OktaGroupGate
+		// 	} else {
+		// 		gate_.Type = models.PolicyGate
+		// 	}
+		// 	gate_.Description = auth.Description
+		// }
 	}
 
 	ret := &models.Request{
@@ -357,4 +361,91 @@ func isGatePlanePlugin(pluginType string) bool {
 	return strings.Contains(pluginType, "gateplane") &&
 		strings.Contains(pluginType, "policy-gate") ||
 		strings.Contains(pluginType, "okta-group-gate")
+}
+
+func (c *Client) GetPolicyGateAccessStruct(gate string) (*[]models.Access, error) {
+	path := fmt.Sprintf("%s/config/access", gate)
+
+	policies, err := c.client.Logical().Read(path)
+	if err != nil {
+		return nil, errors.WrapVaultError("policy-gate policy", gate, err)
+	}
+	var policiesParsed []*models.PolicyACL
+	for _, p := range policies.Data["policies"].([]interface{}) {
+		parsed, err := c.GetPolicy(p.(string))
+		if err != nil {
+			continue
+		}
+		policiesParsed = append(policiesParsed, parsed)
+	}
+
+	mounts, err := c.client.Sys().ListMounts()
+	if err != nil {
+		return nil, errors.WrapVaultError("list mounts", "/sys/mounts", err)
+	}
+
+	var ret []models.Access
+
+	for _, policy := range policiesParsed {
+		access := models.Access{
+			Policy: policy.Name,
+			Types:  map[string]models.AccessBlock{},
+		}
+		for mountPath, mount := range mounts {
+			var aBlock models.AccessBlock
+
+			for _, path := range policy.Parsed.Paths {
+
+				if strings.HasPrefix(path.Path, mountPath) {
+					// fmt.Println(mountPath, mount.Type, path.Path)
+					aBlock.PathBlock = append(aBlock.PathBlock, path)
+				}
+			}
+			if len(aBlock.PathBlock) != 0 {
+				access.Types[mount.Type] = aBlock
+			}
+		}
+		ret = append(ret, access)
+	}
+
+	return &ret, nil
+}
+
+// GetPolicy fetches a Vault policy by name and parses it from HCL to a JSON-serializable object
+func (c *Client) GetPolicy(policyName string) (*models.PolicyACL, error) {
+	// Fetch the policy from Vault
+	path := fmt.Sprintf("sys/policy/%s", policyName)
+
+	resp, err := c.client.Logical().Read(path)
+	if err != nil {
+		return nil, errors.WrapVaultError("get policy", policyName, err)
+	}
+
+	if resp == nil || resp.Data == nil {
+		return nil, fmt.Errorf("policy '%s' not found", policyName)
+	}
+
+	// Extract the HCL rules from the response
+	rules, ok := resp.Data["rules"].(string)
+	if !ok {
+		return nil, fmt.Errorf("policy rules not found or not a string")
+	}
+
+	// Create the policy object
+	policy := &models.PolicyACL{
+		Name:  policyName,
+		Rules: rules,
+	}
+
+	// Decode HCL from string using strings.NewReader
+	err = hclsimple.Decode("policy.hcl", []byte(rules), nil, &policy.Parsed)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse policy HCL: %w", err)
+	}
+
+	return policy, nil
 }

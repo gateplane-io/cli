@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/gateplane-io/client-cli/internal/config"
+	"github.com/gateplane-io/client-cli/internal/service"
+
 	// "github.com/gateplane-io/client-cli/internal/service"
 	"github.com/gateplane-io/client-cli/pkg/models"
 
@@ -153,8 +155,36 @@ func approveRequest(cmd *cobra.Command, requestID string, gate string) error {
 		return wrapError("create vault client", err)
 	}
 
+	svcClient, err := service.NewClient()
+	if err != nil {
+		fmt.Println("Not authenticated with GatePlane Services (using Community Edition features)")
+		svcClient = nil
+	}
+
 	if err := client.ApproveRequest(gate, requestID); err != nil {
 		return wrapError("approve request", err)
+	}
+
+	// Send notification if service is authenticated
+	if svcClient == nil {
+		return nil
+	}
+	access, err := client.GetPolicyGateAccessStruct(gate)
+	// Get the status immediately
+
+	req, err := client.GetRequestStatus(gate)
+	if err != nil {
+		return wrapError("get request status", err)
+	}
+
+	if err := svcClient.SendNotification(&models.RequestServiceResponse{
+		Request: req.AccessRequestResponse,
+		Gate:    *req.Gate,
+		Access:  *access,
+	}, service.Claim,
+	); err != nil {
+		// Log but don't fail on notification errors
+		fmt.Printf("Warning: failed to send notification: %v\n", err)
 	}
 
 	printSuccessMessage("Approved request %s on gate: %s", requestID, gate)
