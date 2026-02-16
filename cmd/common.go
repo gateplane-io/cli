@@ -186,3 +186,8 @@ func sendNotificationWithRetry(svcClient *service.Client, vaultClient *vault.Cli
 
 	return nil
 }
+
+// createServiceClient creates an HTTP client to interact with GatePlane Services
+func createServiceClient() (*service.Client, error) {
+	return service.NewClient(Version, CommitHash, BuildDate)
+}

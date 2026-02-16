@@ -154,7 +154,7 @@ func approveRequest(cmd *cobra.Command, requestID string, gate string) error {
 		return wrapError("create vault client", err)
 	}
 
-	svcClient, err := service.NewClient()
+	svcClient, err := createServiceClient()
 	if err != nil {
 		fmt.Println("Not authenticated with GatePlane Services (using Community Edition features)")
 		svcClient = nil

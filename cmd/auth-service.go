@@ -124,7 +124,7 @@ func serviceStatusCmd() *cobra.Command {
 		Aliases: []string{"whoami"},
 		Short:   "Check service authentication status",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			svcClient, err := service.NewClient()
+			svcClient, err := createServiceClient()
 			if err != nil {
 				fmt.Println("Not authenticated with GatePlane Services (using Community Edition features)")
 				return nil

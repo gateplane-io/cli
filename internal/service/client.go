@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gateplane-io/client-cli/internal/config"
-	"github.com/gateplane-io/client-cli/internal/debug"
 	"github.com/gateplane-io/client-cli/pkg/models"
 )
 
@@ -18,6 +17,20 @@ type Client struct {
 	httpClient *http.Client
 	baseURL    string
 	jwt        string
+}
+
+// CustomTransport wraps the default transport and modifies the User-Agent header
+type CustomUserAgentTransport struct {
+	Transport http.RoundTripper
+	UserAgent string
+}
+
+func (c *CustomUserAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Add the custom User-Agent header to each request
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	// Call the original Transport (which will send the request)
+	return c.Transport.RoundTrip(req)
 }
 
 type NotificationType string
@@ -30,7 +43,7 @@ const (
 )
 
 // NewClient creates a new service client
-func NewClient() (*Client, error) {
+func NewClient(version string, commitHash string, buildDate string) (*Client, error) {
 	cfg := config.GetConfig()
 
 	if cfg.Service.JWT == "" {
@@ -40,8 +53,13 @@ func NewClient() (*Client, error) {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
-			Transport: &debug.DebugTransport{
+			Transport: &CustomUserAgentTransport{
+				UserAgent: fmt.Sprintf("GatePlane CLI/%s - <%s> %s", version, commitHash[:8], buildDate),
 				Transport: http.DefaultTransport,
+
+				// Transport: &debug.DebugTransport{
+				// 	Transport: http.DefaultTransport,
+				// },
 			},
 		},
 		baseURL: config.ServiceAddress,
@@ -102,7 +120,6 @@ func (c *Client) SendNotification(response *models.RequestServiceResponse, type_
 
 	req.Header.Set("Authorization", "Bearer "+c.jwt)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "GatePlane CLI, v0.0.1")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
