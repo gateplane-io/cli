@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	// "time"
 	"os"
-	// "strconv"
 	"strings"
 
 	"github.com/mitchellh/go-homedir"
@@ -17,20 +15,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsimple"
 	vault "github.com/hashicorp/vault/api"
 
-	base "github.com/gateplane-io/vault-plugins/pkg/models"
 	"github.com/gateplane-io/vault-plugins/pkg/responses"
 )
-
-// Helper function to convert string to RequestStatus
-func stringToRequestStatus(status string) base.AccessRequestStatus {
-	var rs base.AccessRequestStatus
-	data, _ := json.Marshal(status)
-	if err := rs.UnmarshalJSON(data); err != nil {
-		// Return default status on unmarshal error
-		return base.Pending
-	}
-	return rs
-}
 
 // Client wraps the Vault client with GatePlane-specific functionality
 type Client struct {
@@ -49,6 +35,12 @@ type Config struct {
 func NewClient(config *Config) (*Client, error) {
 	vaultConfig := vault.DefaultConfig()
 	vaultConfig.Address = config.Address
+	// vaultConfig.HttpClient = &http.Client{
+	// 	Timeout: 30 * time.Second,
+	// 	Transport: &debug.DebugTransport{
+	// 		Transport: http.DefaultTransport,
+	// 	},
+	// }
 
 	if config.Address == "" {
 		if addr := os.Getenv("VAULT_ADDR"); addr != "" {

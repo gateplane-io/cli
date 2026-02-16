@@ -8,7 +8,6 @@ import (
 	"github.com/gateplane-io/client-cli/internal/config"
 	"github.com/gateplane-io/client-cli/internal/vault"
 
-	// "github.com/gateplane-io/client-cli/pkg/models"
 	"github.com/fatih/color"
 	"github.com/gateplane-io/vault-plugins/pkg/models"
 	"golang.org/x/term"
@@ -56,11 +55,6 @@ func formatOutput(data interface{}, format string) error {
 			return fmt.Errorf("failed to marshal to YAML: %w", err)
 		}
 		fmt.Print(string(yamlData))
-
-	// case OutputFormatTable:
-	// 	for k, v := range data {
-	// 		fmt.Printf("%s: %s\n", k, v)
-	// 	}
 
 	default:
 		return fmt.Errorf("unsupported output format for generic data: %s", format)

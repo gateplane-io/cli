@@ -13,6 +13,7 @@ var (
 	Version    = "dev"
 	CommitHash = "unknown"
 	BuildDate  = "unknown"
+	DebugBuild = false
 
 	vaultToken   string
 	vaultAddr    string

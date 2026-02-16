@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gateplane-io/client-cli/internal/config"
+	"github.com/gateplane-io/client-cli/internal/debug"
 	"github.com/gateplane-io/client-cli/pkg/models"
 )
 
@@ -39,6 +40,9 @@ func NewClient() (*Client, error) {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			Transport: &debug.DebugTransport{
+				Transport: http.DefaultTransport,
+			},
 		},
 		baseURL: config.ServiceAddress,
 		jwt:     cfg.Service.JWT,

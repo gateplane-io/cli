@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
-	// "github.com/gateplane-io/client-cli/internal/service"
 
 	"github.com/gateplane-io/client-cli/internal/service"
 	"github.com/gateplane-io/client-cli/pkg/models"

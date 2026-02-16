@@ -7,9 +7,8 @@ git:
   tag_sort: -version:creatordate
 
 builds:
-  - skip: false
-    id: cli
-    # main: ./cmd/main.go
+  - id: cli
+    skip: false
     dir: ./cmd
     command: build
     binary: gateplane
@@ -24,10 +23,6 @@ builds:
       - arm64
     # flags: ["-mod=vendor", "-trimpath"]
 
-    # ldflags:
-    #   - -s -w
-    #   - -X main.Version={{ .Env.VERSION_mock }}
-
     ldflags:
       - -extldflags
       - "-static"
@@ -36,7 +31,6 @@ builds:
       - -X main.BuildDate={{.Date}}
       - -X main.builtBy=goreleaser
       - -X main.Version={{.Version}}
-      # - -X main.Revision={{.ShortCommit}}
 
     mod_timestamp: "{{.CommitTimestamp}}"
 

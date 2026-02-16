@@ -10,7 +10,6 @@ import (
 	"github.com/gateplane-io/client-cli/internal/table"
 	"github.com/gateplane-io/client-cli/internal/vault"
 
-	// "github.com/gateplane-io/client-cli/internal/service"
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"

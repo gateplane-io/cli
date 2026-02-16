@@ -7,7 +7,6 @@ import (
 	"github.com/gateplane-io/client-cli/internal/config"
 	"github.com/gateplane-io/client-cli/internal/service"
 
-	// "github.com/gateplane-io/client-cli/internal/service"
 	"github.com/gateplane-io/client-cli/pkg/models"
 
 	base "github.com/gateplane-io/vault-plugins/pkg/models"
@@ -188,13 +187,6 @@ func approveRequest(cmd *cobra.Command, requestID string, gate string) error {
 	}
 
 	printSuccessMessage("Approved request %s on gate: %s", requestID, gate)
-
-	// Send notification if service is authenticated
-	// notificationService := service.NewService(client)
-	// if err := notificationService.SendNotification(service.NotificationApprove, gate, requestID); err != nil {
-	// 	// Log but don't fail on notification errors
-	// 	fmt.Printf("Warning: failed to send notification: %v\n", err)
-	// }
 
 	return nil
 }
