@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -72,21 +71,14 @@ func serviceLoginCmd() *cobra.Command {
 				return wrapError("create vault client", err)
 			}
 
-			// Get JWKS from Vault OIDC provider
-			jwks, err := getJWKS(client.VaultClient())
-			if err != nil {
-				return wrapError("get JWKS", err)
-			}
-
 			// Perform OIDC login to get JWT
 			jwt, err := performOIDCLogin(client.VaultClient(), clientID, skipBrowser)
 			if err != nil {
 				return wrapError("OIDC login", err)
 			}
 
-			// Save JWT and JWKS to config
+			// Save JWT to config
 			cfg.Service.JWT = jwt
-			cfg.Service.JWKS = jwks
 			if err := config.SaveConfig(); err != nil {
 				return wrapError("save authentication data", err)
 			}
@@ -257,34 +249,6 @@ func performOIDCLogin(client *vault_api.Client, clientID string, skipBrowser boo
 	}
 
 	return exchangeCodeForToken(config, authCode, verifier)
-}
-
-func getJWKS(client *vault_api.Client) (string, error) {
-	// Get JWKS from the Vault OIDC provider via HTTP
-	vaultAddr := client.Address()
-	providerName := "gateplane"
-	jwksURL := fmt.Sprintf("%s/v1/identity/oidc/provider/%s/.well-known/keys", vaultAddr, providerName)
-
-	httpClient := &http.Client{Timeout: 30 * time.Second}
-	resp, err := httpClient.Get(jwksURL)
-	if err != nil {
-		return "", wrapError("fetch JWKS", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("JWKS request failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	jwksData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", wrapError("read JWKS response", err)
-	}
-
-	return string(jwksData), nil
 }
 
 type callbackResult struct {

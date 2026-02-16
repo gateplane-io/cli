@@ -30,7 +30,6 @@ type VaultConfig struct {
 type ServiceConfig struct {
 	ClientID string `mapstructure:"client_id" yaml:"client_id"`
 	JWT      string `yaml:"jwt"`
-	JWKS     string `yaml:"jwks"`
 }
 
 var ServiceAddress = "https://backend.gateplane.io"
@@ -241,12 +240,6 @@ func SetServiceJWT(jwt string) error {
 	return SaveConfig()
 }
 
-// SetServiceJWKS updates the service JWKS in configuration and saves it
-func SetServiceJWKS(jwks string) error {
-	cfg.Service.JWKS = jwks
-	return SaveConfig()
-}
-
 // SetServiceClientID updates the service client ID in configuration and saves it
 func SetServiceClientID(clientID string) error {
 	cfg.Service.ClientID = clientID
@@ -256,7 +249,6 @@ func SetServiceClientID(clientID string) error {
 // ClearServiceAuth clears service authentication credentials and saves the configuration
 func ClearServiceAuth() error {
 	cfg.Service.JWT = ""
-	cfg.Service.JWKS = ""
 	return SaveConfig()
 }
 
