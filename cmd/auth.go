@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	"github.com/gateplane-io/client-cli/internal/config"
-	"github.com/gateplane-io/client-cli/internal/vault"
 	vault_api "github.com/hashicorp/vault/api"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -31,9 +30,9 @@ func authCmd() *cobra.Command {
 
 func authLoginCmd() *cobra.Command {
 	var (
-		vaultAddr string
-		namespace string
-		token     string
+		inputAddr  string
+		namespace  string
+		inputToken string
 	)
 
 	cmd := &cobra.Command{
@@ -45,59 +44,58 @@ func authLoginCmd() *cobra.Command {
 			cfg := config.GetConfig()
 
 			// Get vault address
-			if vaultAddr == "" {
-				vaultAddr = cfg.Vault.Address
-				if vaultAddr == "" {
+			if inputAddr == "" {
+				inputAddr = cfg.Vault.Address
+				if inputAddr == "" {
 					if addr := os.Getenv("VAULT_ADDR"); addr != "" {
-						vaultAddr = addr
+						inputAddr = addr
 					} else {
 						fmt.Print("Enter Vault address: ")
-						if _, err := fmt.Scanln(&vaultAddr); err != nil {
-							return fmt.Errorf("failed to read vault address: %w", err)
+						if _, err := fmt.Scanln(&inputAddr); err != nil {
+							return wrapError("read vault address", err)
 						}
 					}
 				}
 			}
 
 			// Token-based authentication
-			if token == "" {
+			if inputToken == "" {
 				fmt.Print("Enter Vault token: ")
 				tokenBytes, err := term.ReadPassword(int(syscall.Stdin))
 				if err != nil {
-					return fmt.Errorf("failed to read token: %w", err)
+					return wrapError("read token", err)
 				}
 				fmt.Println()
-				token = string(tokenBytes)
+				inputToken = string(tokenBytes)
 			}
 
-			// Update config
-			cfg.Vault.Address = vaultAddr
-			cfg.Vault.Token = token
+			// Update global config for client creation
+			vaultAddr = inputAddr
+			vaultToken = inputToken
 			if namespace != "" {
 				cfg.Vault.Namespace = namespace
 			}
 
 			// Test connection
-			vaultConfig := &vault.Config{
-				Address:   vaultAddr,
-				Token:     token,
-				Namespace: namespace,
-			}
-
-			client, err := vault.NewClient(vaultConfig)
+			client, err := createVaultClient()
 			if err != nil {
-				return fmt.Errorf("failed to create vault client: %w", err)
+				return wrapError("create vault client", err)
 			}
 
 			// Try to get token info to verify auth
 			tokenInfo, err := client.VaultClient().Auth().Token().LookupSelf()
 			if err != nil {
-				return fmt.Errorf("authentication failed: %w", err)
+				return wrapError("authentication failed", err)
 			}
 
 			// Save config
+			cfg.Vault.Address = vaultAddr
+			cfg.Vault.Token = vaultToken
+			if namespace != "" {
+				cfg.Vault.Namespace = namespace
+			}
 			if err := config.SaveConfig(); err != nil {
-				return fmt.Errorf("failed to save config: %w", err)
+				return wrapError("save config", err)
 			}
 
 			printAuthSuccessMessage(tokenInfo)
@@ -106,9 +104,9 @@ func authLoginCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&vaultAddr, "address", "", "Vault address")
+	cmd.Flags().StringVar(&inputAddr, "address", "", "Vault address")
 	cmd.Flags().StringVar(&namespace, "namespace", "", "Vault namespace")
-	cmd.Flags().StringVar(&token, "token", "", "Vault token (use with caution)")
+	cmd.Flags().StringVar(&inputToken, "token", "", "Vault token (use with caution)")
 
 	return cmd
 }
@@ -154,7 +152,7 @@ func authLogoutCmd() *cobra.Command {
 			cfg.Vault.Token = ""
 
 			if err := config.SaveConfig(); err != nil {
-				return fmt.Errorf("failed to save config: %w", err)
+				return wrapError("save config", err)
 			}
 
 			fmt.Println("Logged out successfully")

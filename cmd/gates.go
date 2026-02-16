@@ -5,7 +5,7 @@ import (
 
 	"github.com/gateplane-io/client-cli/internal/config"
 	"github.com/gateplane-io/client-cli/internal/table"
-	"github.com/gateplane-io/client-cli/internal/vault"
+
 	"github.com/spf13/cobra"
 )
 
@@ -33,14 +33,14 @@ func gatesListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.GetConfig()
 
-			client, err := vault.NewClient(getVaultClientConfig())
+			client, err := createVaultClient()
 			if err != nil {
-				return fmt.Errorf("failed to create vault client: %w", err)
+				return wrapError("create vault client", err)
 			}
 
 			gates, err := client.DiscoverGates()
 			if err != nil {
-				return fmt.Errorf("failed to discover gates: %w", err)
+				return wrapError("discover gates", err)
 			}
 
 			// Add aliases from config

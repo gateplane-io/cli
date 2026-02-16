@@ -165,25 +165,13 @@ func approveRequest(cmd *cobra.Command, requestID string, gate string) error {
 	}
 
 	// Send notification if service is authenticated
-	if svcClient == nil {
-		return nil
-	}
-	access, err := client.GetPolicyGateAccessStruct(gate)
-	// Get the status immediately
-
 	req, err := client.GetRequestStatus(gate)
 	if err != nil {
 		return wrapError("get request status", err)
 	}
 
-	if err := svcClient.SendNotification(&models.RequestServiceResponse{
-		Request: req.AccessRequestResponse,
-		Gate:    *req.Gate,
-		Access:  *access,
-	}, service.Claim,
-	); err != nil {
-		// Log but don't fail on notification errors
-		fmt.Printf("Warning: failed to send notification: %v\n", err)
+	if err := sendNotificationWithRetry(svcClient, client, req, gate, service.Claim); err != nil {
+		return err
 	}
 
 	printSuccessMessage("Approved request %s on gate: %s", requestID, gate)

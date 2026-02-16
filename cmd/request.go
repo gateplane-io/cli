@@ -37,8 +37,8 @@ func requestCmd() *cobra.Command {
 
 func requestCreateCmd() *cobra.Command {
 	var (
-		reason      string
-		interactive bool
+		justification string
+		interactive   bool
 	)
 
 	cmd := &cobra.Command{
@@ -47,7 +47,7 @@ func requestCreateCmd() *cobra.Command {
 		Short:   "Create a new access request",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			useInteractive := isInteractiveMode(interactive, len(args) > 0, reason != "")
+			useInteractive := isInteractiveMode(interactive, len(args) > 0, justification != "")
 
 			client, err := createVaultClient()
 			if err != nil {
@@ -67,7 +67,7 @@ func requestCreateCmd() *cobra.Command {
 				var noGates []*models.Gate
 				gate, err = selectGateInteractively(client, noGates)
 				if err != nil {
-					return err
+					return wrapError("select gate interactively", err)
 				}
 			} else {
 				gate, err = resolveGateFromArgs(args)
@@ -76,49 +76,39 @@ func requestCreateCmd() *cobra.Command {
 				}
 			}
 
-			if reason == "" {
+			if justification == "" {
 				if useInteractive {
-					reason, err = promptForReason()
+					justification, err = promptForReason()
 					if err != nil {
 						return err
 					}
 				} else {
-					return fmt.Errorf("Justification is required. Use --justification flag or enable interactive mode")
+					return wrapError("provide justification", fmt.Errorf("Justification is required. Use --justification flag or enable interactive mode"))
 				}
 			}
 
-			if err := client.CreateRequest(gate, reason); err != nil {
+			if err := client.CreateRequest(gate, justification); err != nil {
 				return wrapError("create request", err)
 			}
 
 			printSuccessMessage("Request created successfully on gate: %s", gate)
 
-			// Send notification if service is authenticated
-			if svcClient == nil {
-				return nil
-			}
-			access, err := client.GetPolicyGateAccessStruct(gate)
-			// Get the status immediately
+			// Get request status for notification
 			req, err := client.GetRequestStatus(gate)
 			if err == nil && req != nil {
 				fmt.Printf("Status: %s\n", req.Status)
+			}
 
-				if err := svcClient.SendNotification(&models.RequestServiceResponse{
-					Request: req.AccessRequestResponse,
-					Gate:    *req.Gate,
-					Access:  *access,
-				}, service.Request,
-				); err != nil {
-					// Log but don't fail on notification errors
-					fmt.Printf("Warning: failed to send notification: %v\n", err)
-				}
+			// Send notification if service is authenticated
+			if err := sendNotificationWithRetry(svcClient, client, req, gate, service.Request); err != nil {
+				return err
 			}
 
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&reason, "reason", "r", "", "Reason for access request")
+	cmd.Flags().StringVarP(&justification, "justification", "j", "", "Justification for access request")
 	cmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "Interactive mode")
 
 	return cmd
@@ -148,7 +138,7 @@ func requestListCmd() *cobra.Command {
 			// Discover all gates first
 			gates, err := client.DiscoverGates()
 			if err != nil {
-				return fmt.Errorf("failed to discover gates: %w", err)
+				return wrapError("discover gates", err)
 			}
 
 			// Filter gates based on the provided argument

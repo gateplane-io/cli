@@ -157,7 +157,7 @@ func statusCmd() *cobra.Command {
 
 					// Show claim command
 					if _, err := color.New(color.Bold, color.FgGreen).Printf("  gateplane claim %s\n", gateName); err != nil {
-						return fmt.Errorf("failed to print claim command: %w", err)
+						return wrapError("print claim command", err)
 					}
 				}
 			}

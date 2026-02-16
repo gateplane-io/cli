@@ -69,26 +69,26 @@ func serviceLoginCmd() *cobra.Command {
 			vaultConfig := getVaultClientConfig()
 			client, err := vault.NewClient(vaultConfig)
 			if err != nil {
-				return fmt.Errorf("failed to create vault client: %w", err)
+				return wrapError("create vault client", err)
 			}
 
 			// Get JWKS from Vault OIDC provider
 			jwks, err := getJWKS(client.VaultClient())
 			if err != nil {
-				return fmt.Errorf("failed to get JWKS: %w", err)
+				return wrapError("get JWKS", err)
 			}
 
 			// Perform OIDC login to get JWT
 			jwt, err := performOIDCLogin(client.VaultClient(), clientID, skipBrowser)
 			if err != nil {
-				return fmt.Errorf("OIDC login failed: %w", err)
+				return wrapError("OIDC login", err)
 			}
 
 			// Save JWT and JWKS to config
 			cfg.Service.JWT = jwt
 			cfg.Service.JWKS = jwks
 			if err := config.SaveConfig(); err != nil {
-				return fmt.Errorf("failed to save authentication data: %w", err)
+				return wrapError("save authentication data", err)
 			}
 
 			printSuccessMessage("Successfully authenticated with GatePlane Services")
@@ -109,7 +109,7 @@ func serviceLogoutCmd() *cobra.Command {
 		Short:   "Clear service authentication",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.ClearServiceAuth(); err != nil {
-				return fmt.Errorf("failed to clear service auth: %w", err)
+				return wrapError("clear service auth", err)
 			}
 
 			fmt.Println("Logged out from GatePlane Services")
@@ -168,7 +168,7 @@ func CreateWrappedToken(client *vault_api.Client) (string, error) {
 		return "", err
 	}
 	if secret == nil || secret.WrapInfo == nil {
-		return "", fmt.Errorf("no wrap_info in response - %s", secret)
+		return "", fmt.Errorf("no wrap_info in response - %v", secret)
 	}
 
 	return secret.WrapInfo.Token, nil
@@ -248,7 +248,7 @@ func performOIDCLogin(client *vault_api.Client, clientID string, skipBrowser boo
 		fmt.Printf("Visit this URL in your browser: %s\n", authURL)
 		fmt.Print("Enter the authorization code from the callback URL: ")
 		if _, err := fmt.Scanln(&authCode); err != nil {
-			return "", fmt.Errorf("failed to read authorization code: %w", err)
+			return "", wrapError("read authorization code", err)
 		}
 	}
 
@@ -268,7 +268,7 @@ func getJWKS(client *vault_api.Client) (string, error) {
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	resp, err := httpClient.Get(jwksURL)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch JWKS from %s: %w", jwksURL, err)
+		return "", wrapError("fetch JWKS", err)
 	}
 	defer func() {
 		_ = resp.Body.Close()
@@ -281,7 +281,7 @@ func getJWKS(client *vault_api.Client) (string, error) {
 
 	jwksData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read JWKS response: %w", err)
+		return "", wrapError("read JWKS response", err)
 	}
 
 	return string(jwksData), nil
@@ -333,7 +333,7 @@ func startCallbackServer(port string) (*http.Server, <-chan callbackResult) {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			resultCh <- callbackResult{Error: fmt.Errorf("callback server error: %w", err)}
+			resultCh <- callbackResult{Error: wrapError("callback server", err)}
 		}
 	}()
 
@@ -354,7 +354,7 @@ func exchangeCodeForToken(config *oauth2.Config, authCode, verifier string) (str
 
 	token, err := config.Exchange(ctx, authCode, oauth2.VerifierOption(verifier))
 	if err != nil {
-		return "", fmt.Errorf("failed to exchange code for token: %w", err)
+		return "", wrapError("exchange code for token", err)
 	}
 
 	fmt.Printf("Token response received: AccessToken present: %v, TokenType: %s\n",

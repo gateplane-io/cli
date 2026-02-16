@@ -23,7 +23,7 @@ func claimCmd() *cobra.Command {
 		Use:     "claim [gate]",
 		Aliases: []string{"c"},
 		Short:   "Claim approved access",
-		Long:    "Claim approved access (TODO)",
+		Long:    "Claim approved access",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			useInteractive := isInteractiveMode(interactive, len(args) > 0, gate != "")
@@ -45,7 +45,7 @@ func claimCmd() *cobra.Command {
 				// Discover all gates first
 				gates, err := client.DiscoverGates()
 				if err != nil {
-					return fmt.Errorf("failed to discover gates: %w", err)
+					return wrapError("discover gates", err)
 				}
 
 				// Get claimable requests from gates
@@ -81,7 +81,7 @@ func claimCmd() *cobra.Command {
 			}
 
 			if req.Status != base.Approved {
-				return fmt.Errorf("request is not approved (status: %s)", req.Status)
+				return wrapError("claim access", fmt.Errorf("request is not approved (status: %s)", req.Status))
 			}
 
 			claimResponse, err := client.ClaimAccess(gate)
@@ -90,20 +90,8 @@ func claimCmd() *cobra.Command {
 			}
 
 			// Send notification if service is authenticated
-			if svcClient == nil {
-				return nil
-			}
-			access, err := client.GetPolicyGateAccessStruct(gate)
-			// Get the status immediately
-
-			if err := svcClient.SendNotification(&models.RequestServiceResponse{
-				Request: req.AccessRequestResponse,
-				Gate:    *req.Gate,
-				Access:  *access,
-			}, service.Claim,
-			); err != nil {
-				// Log but don't fail on notification errors
-				fmt.Printf("Warning: failed to send notification: %v\n", err)
+			if err := sendNotificationWithRetry(svcClient, client, req, gate, service.Claim); err != nil {
+				return wrapError("send notification", err)
 			}
 
 			format := getEffectiveOutputFormat()

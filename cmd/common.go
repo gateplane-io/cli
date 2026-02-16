@@ -6,7 +6,9 @@ import (
 	"os"
 
 	"github.com/gateplane-io/client-cli/internal/config"
+	"github.com/gateplane-io/client-cli/internal/service"
 	"github.com/gateplane-io/client-cli/internal/vault"
+	project_models "github.com/gateplane-io/client-cli/pkg/models"
 
 	"github.com/fatih/color"
 	"github.com/gateplane-io/vault-plugins/pkg/models"
@@ -159,4 +161,28 @@ func getVaultClientConfig() *vault.Config {
 	}
 
 	return vaultConfig
+}
+
+// sendNotificationWithRetry sends a notification with consistent error handling
+// Logs warnings instead of failing if service is unavailable or notification fails
+func sendNotificationWithRetry(svcClient *service.Client, vaultClient *vault.Client, req *project_models.Request, gate string, notificationType service.NotificationType) error {
+	if svcClient == nil {
+		return nil
+	}
+
+	accessStruct, err := vaultClient.GetPolicyGateAccessStruct(gate)
+	if err != nil {
+		fmt.Printf("Warning: failed to get gate access struct for notification: %v\n", err)
+		return nil
+	}
+
+	if err := svcClient.SendNotification(&project_models.RequestServiceResponse{
+		Request: req.AccessRequestResponse,
+		Gate:    *req.Gate,
+		Access:  *accessStruct,
+	}, notificationType); err != nil {
+		fmt.Printf("Warning: failed to send notification: %v\n", err)
+	}
+
+	return nil
 }

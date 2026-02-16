@@ -47,7 +47,7 @@ func configShowCmd() *cobra.Command {
 
 			yamlData, err := yaml.Marshal(displayCfg)
 			if err != nil {
-				return fmt.Errorf("failed to marshal config: %w", err)
+				return wrapError("marshal config", err)
 			}
 
 			fmt.Print(string(yamlData))
@@ -79,7 +79,7 @@ func configSetVaultAddressCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.SetVaultAddress(args[0]); err != nil {
-				return fmt.Errorf("failed to set vault address: %w", err)
+				return wrapError("set vault address", err)
 			}
 			fmt.Printf("Vault address set to: %s\n", args[0])
 			return nil
@@ -94,7 +94,7 @@ func configSetDefaultGateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.SetDefaultGate(args[0]); err != nil {
-				return fmt.Errorf("failed to set default gate: %w", err)
+				return wrapError("set default gate", err)
 			}
 			fmt.Printf("Default gate set to: %s\n", args[0])
 			return nil
@@ -116,7 +116,7 @@ func configSetOutputFormatCmd() *cobra.Command {
 			cfg := config.GetConfig()
 			cfg.Defaults.OutputFormat = format
 			if err := config.SaveConfig(); err != nil {
-				return fmt.Errorf("failed to save config: %w", err)
+				return wrapError("save config", err)
 			}
 			fmt.Printf("Default output format set to: %s\n", format)
 			return nil
@@ -147,7 +147,7 @@ func configAddAliasCmd() *cobra.Command {
 			}
 
 			if err := config.AddGateAlias(gatePath, alias, gt); err != nil {
-				return fmt.Errorf("failed to add alias: %w", err)
+				return wrapError("add alias", err)
 			}
 
 			fmt.Printf("Added alias '%s' for gate '%s'\n", alias, gatePath)
@@ -168,7 +168,7 @@ func configUseProfileCmd() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.UseProfile(args[0]); err != nil {
-				return fmt.Errorf("failed to use profile: %w", err)
+				return wrapError("use profile", err)
 			}
 			fmt.Printf("Switched to profile: %s\n", args[0])
 			return nil
