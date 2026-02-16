@@ -45,7 +45,7 @@ func init() {
 		approveCmd(),
 		claimCmd(),
 		statusCmd(),
-		// versionCmd(),
+		versionCmd(),
 	)
 }
 
