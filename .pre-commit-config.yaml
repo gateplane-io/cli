@@ -1,0 +1,76 @@
+repos:
+  # General Hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # Golang
+  - repo: https://github.com/TekWizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+      - id: go-fmt
+      # - id: go-imports
+      # - id: no-go-testing
+      # - id: golangci-lint
+      # - id: go-unit-tests
+
+  # Licensing
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v5.0.2
+    hooks:
+      - id: reuse
+        name: Add License Headers
+        files: ".*.go"
+        pass_filenames: true
+        args:
+          - annotate
+          - --copyright
+          - "Ioannis Torakis <john.torakis@gmail.com>"
+          - --year
+          - "2026"
+          # https://github.com/spdx/license-list-data/blob/main/text/Elastic-2.0.txt
+          - --license
+          - "Elastic-2.0"
+          - --copyright-prefix
+          - "string-c"
+          - --template
+          - elastic_v2
+
+  # Terraform
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.4
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_docs
+
+  # Python
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.11.13
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args:
+          - "--fix"
+          - "--show-fixes"
+        # Run the formatter.
+      - id: ruff-format
+
+  # Markdown Documentation ToC
+  - repo: https://codeberg.org/frnmst/md-toc
+    # Release updates (ATOM) https://codeberg.org/frnmst/md-toc/tags.atom
+    rev: 9.0.0
+    hooks:
+      - id: md-toc
+        args:
+          # Skip header
+          - --skip-lines
+          - "1"
+          - --in-place
+          - github
+          - -l
+          - "4"
