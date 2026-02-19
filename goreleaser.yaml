@@ -1,0 +1,110 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+git:
+  tag_sort: -version:creatordate
+
+builds:
+  - id: gateplane
+    skip: false
+    dir: ./cmd
+    command: build
+    binary: gateplane
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      # - windows
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - "7"
+
+    flags: ["-trimpath"]
+
+    ldflags:
+      - -extldflags
+      - "-static"
+      - -s -w
+      - -X main.CommitHash={{.Commit}}
+      - -X main.BuildDate={{.Date}}
+      - -X main.builtBy=goreleaser
+      - -X main.Version={{.Version}}
+
+    mod_timestamp: "{{.CommitTimestamp}}"
+
+archives:
+  - formats: ["binary"]
+    name_template: >-
+      {{ .Binary }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: '{{ time "2006.1.2" }}-snapshot'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^test(\([[:word:]]+\))?:'
+      - '^chore(\([[:word:]]+\))?:'
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
+
+release:
+  header: |
+    ## Release: `{{ .Tag }}` is here 🚀🚀🚀
+
+    This is the release `{{ .Tag }}` of the GatePlane CLI client.
+
+    ---
+
+# SLACK_WEBHOOK EnvVar must be populated
+announce:
+  slack:
+    enabled: true
+    message_template: ""
+    blocks:
+      - type: header
+        text:
+          type: plain_text
+          text: "The {{ .Tag }} of GatePlane CLI is out 🚀⭐"
+          emoji: true
+      - type: section
+        text:
+          type: mrkdwn
+          text: "{{ .ReleaseURL }}"
+      - type: divider
+      # - type: section
+      #   text:
+      #     type: mrkdwn
+      #     text: '{{ printf "*Plugin versions:*\n Policy Gate: `%s`\n Okta Group Gate: `%s`" .Env.VERSION_policy_gate .Env.VERSION_okta_group_gate | mdv2escape }}'
+      # - type: divider
+      # - type: header
+      #   text:
+      #     type: plain_text
+      #     text: "Release Notes 📝"
+      #     emoji: true
+      # - type: section
+      #   text:
+      #     type: mrkdwn
+      #     text: '{{ printf "%s" .ReleaseNotes | mdv2escape }}'
