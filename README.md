@@ -1,5 +1,10 @@
 # GatePlane CLI
 
+<!-- Badges -->
+[![License: ElasticV2](https://img.shields.io/badge/ElasticV2-green?label=license&cacheSeconds=3600&link=https%3A%2F%2Fwww.elastic.co%2Flicensing%2Felastic-license)](https://www.elastic.co/licensing/elastic-license)
+[![GoReport Card](https://img.shields.io/badge/go%20report-A+-brightgreen.svg?style=flat)](https://goreportcard.com/report/github.com/gateplane-io/cli)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/gateplane-io/vault-plugins/badge)](https://scorecard.dev/viewer/?uri=github.com/gateplane-io/cli)
+
 Command-line interface for GatePlane - Just-In-Time Access Management.
 
 ## 📖 Overview
