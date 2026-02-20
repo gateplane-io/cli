@@ -9,8 +9,9 @@ Command-line interface for GatePlane - Just-In-Time Access Management.
 
 ## 📖 Overview
 
-GatePlane CLI interacts with Vault/OpenBao instances and
-condumes the APIs provided by the [GatePlane Plugins](https://github.com/gateplane-io/vault-plugins).
+GatePlane CLI interacts with Vault/OpenBao instances an and consumes the APIs provided by the [GatePlane Plugins](https://github.com/gateplane-io/vault-plugins).
+
+Can work either with GatePlane Community or with GatePlane Services subscription (Team/Enterprise).
 
 ## 🎬 Usage Examples
 
@@ -58,13 +59,14 @@ Flags:
 - **Approve Requests**: Review and approve pending access requests
 - **Claim Credentials**: Retrieve time-limited credentials for approved requests
 - **Status Tracking**: Monitor request status and access history
+- **(Team/Enterprise) Notifications**:  Requests, Approvals and Claims interact with the GatePlane Services to send Notifications
 
 ## 📦 Installation
 
 Download the latest release binary for your platform from [GitHub Releases](https://github.com/gateplane-io/client-cli/releases) or build from source:
 
 ```bash
-go build -o gateplane ./cmd
+goreleaser build --snapshot --clean
 ```
 
 ## ⚙️ Configuration
@@ -77,7 +79,30 @@ Environment variables or CLI flags and override the stored configuration.
 
 Or use flags: `--vault-addr`, `--vault-token`
 
-
+`~/.gateplane/config.yaml`
+```yaml
+defaults:
+    # The output format can be 'table', 'json', 'yaml'
+    # Also changeable with -o/--output
+    output_format: table
+    # This gate is assumed if no [gate]
+    # positional argument is provided
+    gate: "gates/production/ssh"
+# Connectivity for Vault/OpenBao
+# can override with Env Vars
+vault:
+    address: https://vault.example.com:8200
+    token: "<vault-token>"
+    namespace: ""
+# Connectivity with GatePlane Services
+# Set the ClientID/Audience of
+# a subscribed Vault/OpenBao instance and run:
+# > gateplane auth service login
+# > gateplane auth service status
+service:
+    client_id: <vault-gateplane-oidc-client-id>
+    jwt: "<gateplane-token>"
+```
 
 ### ⚖️ License
 This project is licensed under the [Elastic License v2](https://www.elastic.co/licensing/elastic-license).
