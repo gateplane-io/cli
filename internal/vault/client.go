@@ -255,10 +255,8 @@ func (c *Client) ListAllRequestsForGate(path string) (map[string]*models.Request
 }
 
 func (c *Client) ApproveRequest(gate string, requestorID string) error {
-	path := fmt.Sprintf("%s/approve", gate)
-	data := map[string]interface{}{
-		"requestor_id": requestorID,
-	}
+	path := fmt.Sprintf("%s/approve/%s", gate, requestorID)
+	data := map[string]interface{}{}
 
 	_, err := c.client.Logical().Write(path, data)
 	if err != nil {
